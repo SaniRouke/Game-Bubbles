@@ -13,24 +13,30 @@ export default function Div() {
 
 class Ball {
   outer = {
-    x: -100,
+    x: 100,
     y: 100,
     r: 30,
+    // color: null,
   };
   inner = {
     x: null,
     y: null,
     r: null,
+    color: {
+      r: null,
+      g: null,
+      b: null,
+    },
   };
 
   step = 5;
-  color1 = "grey";
-  color2 = "yellow";
 
   constructor(canvas, ctx) {
-    const { outer, inner } = this;
     this.canvas = canvas;
     this.ctx = ctx;
+    this.inner.color.r = Math.floor(Math.random() * 200);
+    this.inner.color.g = Math.floor(Math.random() * 200);
+    this.inner.color.b = Math.floor(Math.random() * 200);
   }
   animate = () => {
     this.clear();
@@ -39,24 +45,24 @@ class Ball {
 
     requestAnimationFrame(this.animate);
   };
+
   render() {
-    const { outer, ctx } = this;
-    ctx.beginPath();
-    ctx.fillStyle = this.color1;
-    ctx.arc(outer.x, outer.y, outer.r, 0, Math.PI * 2);
-    ctx.fillStyle = this.getGradient();
-    ctx.fill();
-    ctx.closePath();
-    this.withGradient();
+    const { canvas, outer, ctx } = this;
+    const circle = new Path2D();
+    circle.arc(outer.x, outer.y, outer.r, 0, Math.PI * 2);
+    this.setGradientPosition();
+    ctx.fillStyle = this.getGradientColor();
+    ctx.fill(circle);
   }
-  withGradient = () => {
+  setGradientPosition = () => {
     const { outer, inner } = this;
     inner.x = outer.x + outer.r / 2;
     inner.y = outer.y - outer.r / 2;
     inner.r = outer.r / 10;
   };
-  getGradient = () => {
+  getGradientColor = () => {
     const { outer, inner, ctx } = this;
+    const { r, g, b } = inner.color;
     const gradient = ctx.createRadialGradient(
       outer.x,
       outer.y,
@@ -65,9 +71,9 @@ class Ball {
       inner.y,
       inner.r
     );
-    gradient.addColorStop(0, "rgb(50,50,0)");
-    gradient.addColorStop(0.1, "rgb(100,100,0)");
-    gradient.addColorStop(1, this.color2);
+    gradient.addColorStop(0, `rgb(${r / 2},${g / 2},${b / 2})`);
+    gradient.addColorStop(0.1, `rgb(${r / 1.9},${g / 1.9},${b / 1.9})`);
+    gradient.addColorStop(1, `rgb(${r},${g},${b})`);
 
     return gradient;
   };
