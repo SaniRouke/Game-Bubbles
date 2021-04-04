@@ -33,7 +33,11 @@ class Context {
 
 class Game extends Context {
   objects = [];
-  bubblesDependsOnWidth = 50;
+  bubblesDependsOnWidth = 10;
+  isPlay = true;
+  wind = {
+    power: 0,
+  };
   constructor() {
     super();
     this.canvas.width = window.innerWidth;
@@ -44,37 +48,27 @@ class Game extends Context {
     sprite.addEventListener("load", () => {
       this.sprite = sprite;
     });
-    // setInterval(() => {
-    //   console.log();
-
-    //   const isRightSide = Math.floor(Math.random() * 2);
-    //   console.log(isRightSide ? "right" : "left");
-    //   if (isRightSide) {
-    //     this.objects.forEach((obj) => {
-    //       if (obj.pos.x > this.canvas.width / 2) {
-    //         obj.blow();
-    //       }
-    //     });
-    //   } else {
-    //     this.objects.forEach((obj) => {
-    //       if (obj.pos.x < this.canvas.width / 2) {
-    //         obj.blow();
-    //       }
-    //     });
-    //   }
-    // }, (Math.random() * 3 + 5) * 1000);
-    // this.canvas.addEventListener("click", () => {
-    //   console.log("kek");
-    // });
+    setInterval(() => {
+      const isRightdirection = Math.floor(Math.random() * 2);
+    }, (Math.random() * 3 + 5) * 1000);
+    this.canvas.addEventListener("click", () => {
+      // this.isPlay = !this.isPlay;
+      const intervalId = setInterval(() => {
+        this.wind.power += 5;
+        clearInterval(intervalId);
+      }, 1000);
+    });
   }
 
   play = () => {
-    this.updateObjects();
-    this.clearContext();
-    this.objects.forEach((obj) => {
-      obj.move();
-      obj.render();
-    });
+    if (this.isPlay) {
+      this.updateObjects();
+      this.clearContext();
+      this.objects.forEach((obj) => {
+        obj.move(this.wind.power);
+        obj.render();
+      });
+    }
     requestAnimationFrame(this.play);
   };
   updateObjects = () => {
@@ -107,28 +101,20 @@ class Bubble extends Context {
   currentFrame = 0;
   isExploding = false;
   isDead = false;
-  windX = {
-    acc: 0.05,
-    power: 5,
-    speed: 0,
-    prevSpeed: 0,
-    tempForSin: 0,
-    isEnding: false,
-  };
   constructor(sprite) {
     super();
     const { canvas } = this;
     this.sprite = sprite;
   }
   render = () => {
-    const { ctx, currentFrame, sprite } = this;
+    const { canvas, ctx, pos, currentFrame, sprite } = this;
     if (sprite) {
       this.drawFrame(currentFrame);
     }
   };
-  move = () => {
+  move = (windPower) => {
     this.moveY();
-    this.moveX();
+    this.moveX(true, windPower);
   };
   moveY = () => {
     this.pos.y -= this.step;
@@ -140,13 +126,14 @@ class Bubble extends Context {
       this.explode();
     }
   };
-  moveX = (right) => {
-    const isRightdirection = false;
+  moveX = (isRightdirection, windPower) => {
     const { canvas, pos } = this;
-    // const aсс = canvas.width / pos.x;
-    // pos.x += aсс / 10;
-    const aсс = canvas.width / canvas.width - pos.x;
-    pos.x += aсс / 1000;
+
+    const blowRight = canvas.width / pos.x;
+    const blowLeft = -canvas.width / (canvas.width - pos.x);
+
+    const acc = isRightdirection ? blowRight : blowLeft;
+    pos.x += (acc / 10) * windPower;
   };
   blow = () => {
     const { canvas, pos, windX } = this;
