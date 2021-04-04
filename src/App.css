@@ -1,4 +1,6 @@
 body {
   background: rgb(60, 103, 116);
   color: white;
+  margin: 0;
+  overflow: hidden;
 }
