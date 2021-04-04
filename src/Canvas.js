@@ -33,10 +33,12 @@ class Context {
 
 class Game extends Context {
   objects = [];
-  bubblesDependsOnWidth = 10;
+  bubblesDependsOnWidth = 50;
   isPlay = true;
   wind = {
     power: 0,
+    isRightDirection: false,
+    tempForSin: 0,
   };
   constructor() {
     super();
@@ -49,14 +51,21 @@ class Game extends Context {
       this.sprite = sprite;
     });
     setInterval(() => {
-      const isRightdirection = Math.floor(Math.random() * 2);
-    }, (Math.random() * 3 + 5) * 1000);
-    this.canvas.addEventListener("click", () => {
-      // this.isPlay = !this.isPlay;
+      const { wind } = this;
+      wind.isRightDirection = Math.floor(Math.random() * 2);
       const intervalId = setInterval(() => {
-        this.wind.power += 5;
-        clearInterval(intervalId);
-      }, 1000);
+        if (wind.power < 0 || wind.tempForSin > 10) {
+          wind.tempForSin = 0;
+          wind.power = 0;
+          clearInterval(intervalId);
+        }
+        console.log(wind.tempForSin);
+        wind.tempForSin += 0.2;
+        wind.power += Math.sin(wind.tempForSin);
+      }, 100);
+    }, (Math.random() * 7 + 3) * 1000);
+    this.canvas.addEventListener("click", () => {
+      this.isPlay = !this.isPlay;
     });
   }
 
@@ -65,7 +74,7 @@ class Game extends Context {
       this.updateObjects();
       this.clearContext();
       this.objects.forEach((obj) => {
-        obj.move(this.wind.power);
+        obj.move(this.wind);
         obj.render();
       });
     }
@@ -112,9 +121,11 @@ class Bubble extends Context {
       this.drawFrame(currentFrame);
     }
   };
-  move = (windPower) => {
+  move = (wind) => {
     this.moveY();
-    this.moveX(true, windPower);
+    this.moveY();
+    this.moveY();
+    this.moveX(wind);
   };
   moveY = () => {
     this.pos.y -= this.step;
@@ -126,33 +137,16 @@ class Bubble extends Context {
       this.explode();
     }
   };
-  moveX = (isRightdirection, windPower) => {
+  moveX = (wind) => {
     const { canvas, pos } = this;
 
     const blowRight = canvas.width / pos.x;
     const blowLeft = -canvas.width / (canvas.width - pos.x);
 
-    const acc = isRightdirection ? blowRight : blowLeft;
-    pos.x += (acc / 10) * windPower;
+    const acc = wind.isRightDirection ? blowRight : blowLeft;
+    pos.x += (acc / 10) * wind.power;
   };
-  blow = () => {
-    const { canvas, pos, windX } = this;
-    const OX = canvas.width / 2;
-    const acc = ((OX + pos.x) / canvas.width) * 2;
-
-    const id = setInterval(() => {
-      if (windX.speed < windX.prevSpeed && windX.isEnding === false) {
-        windX.isEnding = true;
-      }
-      if (windX.speed > windX.prevSpeed && windX.isEnding === true) {
-        windX.isEnding = false;
-        clearInterval(id);
-      }
-      windX.tempForSin += windX.acc;
-      windX.speed += Math.sin(windX.tempForSin) / 50;
-      pos.x += windX.speed * windX.power * acc;
-    }, 15);
-  };
+  blow = () => {};
   explode = () => {
     const intervalId = setInterval(() => {
       this.currentFrame++;
