@@ -59,7 +59,6 @@ class Game extends Context {
           wind.power = 0;
           clearInterval(intervalId);
         }
-        console.log(wind.tempForSin);
         wind.tempForSin += 0.2;
         wind.power += Math.sin(wind.tempForSin);
       }, 100);
@@ -97,7 +96,7 @@ class Game extends Context {
 class Bubble extends Context {
   id = 0;
   minSize = 5;
-  maxSize = 150;
+  maxSize = 100;
   size = Math.random() * (this.maxSize - this.minSize) + this.minSize;
   pos = {
     x: Math.floor(
@@ -105,7 +104,6 @@ class Bubble extends Context {
     ),
     y: Math.floor(Math.random() * this.canvas.height) + this.canvas.height,
   };
-  // step = 10 / this.size + 3;
   step = 10 / this.size + 1;
   currentFrame = 0;
   isExploding = false;
@@ -116,14 +114,12 @@ class Bubble extends Context {
     this.sprite = sprite;
   }
   render = () => {
-    const { canvas, ctx, pos, currentFrame, sprite } = this;
+    const { currentFrame, sprite } = this;
     if (sprite) {
       this.drawFrame(currentFrame);
     }
   };
   move = (wind) => {
-    this.moveY();
-    this.moveY();
     this.moveY();
     this.moveX(wind);
   };
@@ -132,22 +128,28 @@ class Bubble extends Context {
     if (this.isExploding) {
       return;
     }
-    if (this.pos.y < 50) {
-      this.isExploding = true;
+    if (this.pos.y < this.size / 2) {
       this.explode();
     }
   };
   moveX = (wind) => {
-    const { canvas, pos } = this;
+    const { canvas, pos, size } = this;
 
     const blowRight = canvas.width / pos.x;
     const blowLeft = -canvas.width / (canvas.width - pos.x);
 
     const acc = wind.isRightDirection ? blowRight : blowLeft;
-    pos.x += (acc / 10) * wind.power;
+    pos.x += (acc / 20) * wind.power;
+    if (pos.x - size / 2.5 < 0) {
+      pos.x = size / 2.5;
+    }
+    if (pos.x + size / 2.5 > canvas.width) {
+      pos.x = canvas.width - size / 2.5;
+    }
   };
   blow = () => {};
   explode = () => {
+    this.isExploding = true;
     const intervalId = setInterval(() => {
       this.currentFrame++;
       if (this.currentFrame > 5) {
@@ -161,6 +163,11 @@ class Bubble extends Context {
     const frameSize = 512;
     const column = (frame % 3) * frameSize;
     const row = frame > 2 ? frameSize : 0;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, size / 3, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(200,0,0,1)";
+    ctx.fill();
+    ctx.closePath();
     ctx.drawImage(
       sprite,
       column,
@@ -168,7 +175,7 @@ class Bubble extends Context {
       frameSize,
       frameSize,
       pos.x - size / 2,
-      pos.y,
+      pos.y - size / 2,
       size,
       size
     );
