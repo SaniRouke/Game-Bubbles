@@ -59,7 +59,7 @@ class Game extends Context {
           wind.power = 0;
           clearInterval(intervalId);
         }
-        wind.tempForSin += 0.2;
+        wind.tempForSin += Math.random() * 0.5;
         wind.power += Math.sin(wind.tempForSin);
       }, 100);
     }, (Math.random() * 7 + 3) * 1000);
