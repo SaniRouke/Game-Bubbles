@@ -3,4 +3,5 @@ body {
   color: white;
   margin: 0;
   overflow: hidden;
+  cursor: none;
 }
