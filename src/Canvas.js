@@ -85,8 +85,8 @@ class Game extends Context {
       this.clearContext();
       this.objects = [this.spine, ...this.bubbles];
       this.objects.forEach((obj) => {
-        if (obj instanceof Bubble) {
-          this.spine.isCollision(obj);
+        if (this.spine.isCollision(obj)) {
+          obj.explode();
         }
         obj.move(this.wind);
         obj.render();
@@ -112,12 +112,18 @@ class Bubble extends Context {
   id = 0;
   minSize = 5;
   maxSize = 100;
-  size = Math.random() * (this.maxSize - this.minSize) + this.minSize;
+  size = Math.floor(
+    Math.random() * (this.maxSize - this.minSize) + this.minSize
+  );
   pos = {
     x: Math.floor(
       Math.random() * (this.canvas.width - this.size) + this.size / 2
     ),
-    y: Math.floor(Math.random() * this.canvas.height) + this.canvas.height,
+    y: Math.floor(Math.random() * this.canvas.height + this.canvas.height),
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   };
   step = 10 / this.size + 1;
   currentFrame = 0;
@@ -136,6 +142,7 @@ class Bubble extends Context {
   move = (wind) => {
     this.moveY();
     this.moveX(wind);
+    this.updatePos();
   };
   moveY = () => {
     this.pos.y -= this.step;
@@ -161,7 +168,13 @@ class Bubble extends Context {
       pos.x = canvas.width - size / 2.5;
     }
   };
-  blow = () => {};
+  updatePos = () => {
+    const { pos } = this;
+    pos.top = this.pos.y - this.size / 2;
+    pos.right = this.pos.x + this.size / 2;
+    pos.bottom = this.pos.y + this.size / 2;
+    pos.left = this.pos.x - this.size / 2;
+  };
   explode = () => {
     this.isExploding = true;
     const intervalId = setInterval(() => {
@@ -177,11 +190,33 @@ class Bubble extends Context {
     const frameSize = 512;
     const column = (frame % 3) * frameSize;
     const row = frame > 2 ? frameSize : 0;
+    //
+
+    ctx.save();
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, size / 3, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(200,0,0,1)";
     ctx.fill();
     ctx.closePath();
+
+    function angle(cx, cy, ex, ey) {
+      var dy = ey - cy;
+      var dx = ex - cx;
+      var theta = Math.atan2(dy, dx);
+      theta *= 180 / Math.PI;
+      return theta;
+    }
+    //
+    const a = angle(
+      pos.x,
+      pos.y,
+      -this.canvas.width / 2,
+      -this.canvas.height / 2
+    );
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate((Math.PI / 180) * (135 + a));
+    ctx.translate(-pos.x, -pos.y);
+    //
     ctx.drawImage(
       bubbleSprite,
       column,
@@ -193,34 +228,75 @@ class Bubble extends Context {
       size,
       size
     );
+    ctx.restore();
   };
 }
 
 class Spine extends Context {
   spineFrame = new Image();
+  width = 50;
+  height = 250;
   pos = {
     x: this.canvas.width / 2,
     y: -100,
+    top: -this.height / 2,
+    right: this.width / 2,
+    bottom: this.height / 2,
+    left: -this.width / 2,
   };
   mousePos = {
     x: 0,
     y: 0,
   };
-  width = 50;
-  height = 250;
+  hitBox = {
+    x: this.pos.x,
+    y: 100,
+    radius: 100,
+  };
   angle = 0;
   constructor(spineFrame) {
     super();
     this.spineFrame = spineFrame;
   }
+  updatePos = () => {
+    const { pos, hitBox } = this;
+    pos.top = this.pos.y - this.height / 2;
+    pos.right = this.pos.x + this.width / 2;
+    pos.bottom = this.pos.y + this.height / 2;
+    pos.left = this.pos.x - this.width / 2;
+    //
+    hitBox.x = pos.x;
+    hitBox.y = pos.y + this.height;
+    hitBox.radius = 100;
+  };
   isCollision = (obj) => {
-    // console.log(this.pos.x);
+    const left = Math.min(this.pos.x, obj.pos.x);
+    const top = Math.min(this.pos.y + this.height - this.width, obj.pos.y);
+    const right = Math.max(this.pos.x, obj.pos.x);
+    const bottom = Math.max(this.pos.y, obj.pos.y);
+
+    const dx = bottom - top;
+    const dy = right - left;
+    const c = Math.sqrt(dx * dx + dy * dy);
+    // debug
+    const { ctx, pos, hitBox } = this;
+    ctx.beginPath();
+    ctx.fillStyle = "rgba(0,50,200,0.1)";
+    ctx.arc(hitBox.x, hitBox.y, hitBox.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.closePath();
+    //
+    if (c < this.width * 2 + obj.size / 2) {
+      return true;
+    }
+    return false;
   };
   move = () => {
     const { canvas, pos, mousePos } = this;
     pos.x = mousePos.x;
     const ox = pos.x - canvas.width / 2;
     this.angle = -((Math.PI / 180) * ox) / 10;
+    this.updatePos();
   };
   render = () => {
     const { ctx, pos, width, height, angle } = this;
