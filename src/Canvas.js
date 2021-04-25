@@ -16,43 +16,16 @@ export default function Div() {
 
 const main = () => {
   const ctx = document.getElementById("canvas").getContext("2d");
-  // const game = new Game(ctx);
-  // console.log(game);
+  const game = new Game(ctx);
   //
-  // game.play();
-  // game.pause()
-  // game.restart()
-  const test = new TEST();
-  ctx.canvas.addEventListener("click", () => test.setStage(2));
-  const cb = test.setStage(1);
+  game.play();
 };
-
-class TEST {
-  stage = 0;
-  prev_setStage = () => {};
-  before = () => {
-    console.log("before");
-  };
-  run = () => {
-    console.log(this.stage);
-    requestAnimationFrame(this.run);
-  };
-  setStage = (stage) => {
-    this.prev_setStage();
-    this.before();
-    this.stage = stage;
-    this.run();
-    this.prev_setStage = () => {
-      console.log("after");
-    };
-  };
-}
 
 class Game {
   props = {
     ctx: null,
     canvas: null,
-    stage: null,
+    stage: 0,
     isPlay: true,
     bubbleSprite: null,
     oarSprite: null,
@@ -72,12 +45,12 @@ class Game {
     time: {
       current: null,
       start: null,
-      end: 2,
+      end: 10,
       isEnd: null,
     },
   };
   bubbles = {
-    countDependsOnWidth: 50,
+    countDependsOnWidth: 100,
     count: 0,
     list: [],
   };
@@ -92,10 +65,7 @@ class Game {
     this.settingCanvas();
     this.setGameProps();
     this.addEvents();
-    props.stage = 0;
-    this.runStage(this.before, this.main, this.after);
   }
-
   settingCanvas = () => {
     const { props } = this;
     props.canvas.width = window.innerWidth;
@@ -113,19 +83,10 @@ class Game {
   };
   addEvents = () => {
     const { props } = this;
-    props.canvas.addEventListener("click", () => {
-      if (this.gameInterface.startButtonIsMouseCollision()) {
-        props.stage = 1;
-        this.startTimer();
-        return;
-      }
-    });
+    props.canvas.addEventListener("click", this.restart);
     setInterval(this.runWind, (Math.random() * 2 + 3) * 1000);
     this.runWind();
-    props.canvas.addEventListener("mousemove", (e) => {
-      props.mousePos.x = e.clientX;
-      props.mousePos.y = e.clientY;
-    });
+    props.canvas.addEventListener("mousemove", this.setMousePos);
   };
   runWind = () => {
     const { wind } = this.props;
@@ -142,39 +103,56 @@ class Game {
   };
   // цикл
   play = () => {
-    this.animate();
+    this.gameAnimate();
+    this.gameRender();
 
     requestAnimationFrame(this.play);
   };
-  animate = () => {
+  gameAnimate = () => {
     const { props, bubbles, oar, gameInterface } = this;
-    this.gameRender();
-    if (this.props.stage === 0) {
-      gameInterface.renderStage0();
-    }
+
+    if(this.props.stage !== 0) {
+      this.update();
+    }    
     if (this.props.stage === 1) {
       if (props.time.isEnd) {
-        props.isPlay = false;
+        props.stage = 2;
       }
-      gameInterface.renderStage1();
-      this.updateObjects();
-      const moveableObjects = [oar, ...bubbles.list];
-      const renderObjects = [gameInterface, oar, ...bubbles.list];
-      moveableObjects.forEach((obj) => {
-        obj.move();
-      });
-      renderObjects.forEach((obj) => {
-        obj.render();
+      oar.move()
+      bubbles.list.forEach((bubble) => {
+        bubble.move();
       });
     }
     if (this.props.stage === 2) {
-      gameInterface.renderStage2();
+      bubbles.list.forEach((bubble) => {
+        bubble.moveYRush();
+      });
     }
+    gameInterface.drawCursor()
   };
   gameRender = () => {
+    const { props, bubbles, oar, gameInterface } = this;
     this.clearContext();
     this.drawBackground();
     this.drawWind();
+    bubbles.list.forEach((bubble) => {
+      bubble.render();
+    });
+    if (this.props.stage === 0) {
+      gameInterface.drawIntro()
+      gameInterface.drawStartButton()
+    }
+    if (this.props.stage === 1) {
+      oar.render()
+      gameInterface.drawScore()
+      gameInterface.update()
+      gameInterface.drawTimer()
+    }
+    if (this.props.stage === 2) {
+      gameInterface.drawResult()
+      gameInterface.drawStartButton()
+    }
+    gameInterface.drawCursor()
     // this.debug();
   };
   clearContext = () => {
@@ -183,8 +161,9 @@ class Game {
     const height = props.canvas.height;
     props.ctx.clearRect(0, 0, width, height);
   };
-  updateObjects = () => {
+  update = () => {
     const { props, bubbles, oar, gameInterface } = this;
+    this.settingCanvas()
     bubbles.list = bubbles.list.filter((bubble) => {
       return !bubble.isDead;
     });
@@ -192,15 +171,34 @@ class Game {
       return;
     }
     bubbles.list.forEach((bubble) => {
-      if (oar.isCollision(bubble) && !bubble.frame.isExploding) {
+      if (bubble.frame.isExploding) {
+        return
+      }
+      if (oar.isCollision(bubble)) {
         const score = bubble.explode();
-        gameInterface.addScore(score);
+        gameInterface.addScore(score, true);
+      }
+      if(bubble.pos.bottom < 0) {
+        const score = bubble.explode();
+        gameInterface.addScore(score, false);
       }
     });
     if (bubbles.list.length < bubbles.count) {
       bubbles.list.push(new Bubble(this.props));
     }
   };
+  restart = () => {
+    const { props } = this;
+    if (this.gameInterface.startButton.isMouseCollision()) {
+      props.stage = 1
+      this.restartTimer();
+    }
+  }
+  setMousePos = (e) => {
+    const { props } = this;
+    props.mousePos.x = e.clientX;
+    props.mousePos.y = e.clientY;
+  }
   drawBackground = () => {
     const { ctx, canvas } = this.props;
     const light = ctx.createRadialGradient(0, 0, 0, 0, 0, canvas.width);
@@ -259,32 +257,11 @@ class Game {
     ctx.closePath();
     ctx.restore();
   };
-  startTimer = () => {
+  restartTimer = () => {
     this.props.time.start = Date.now();
-  };
-  runStage = (before, main, after) => {
-    before();
-    main();
-    after();
-  };
-  before = () => {
-    console.log("before");
-  };
-  main = () => {
-    console.log("main");
-  };
-  after = () => {
-    console.log("after");
-  };
-  // debug
-  debug = () => {
-    const { props } = this;
-    const { ctx, canvas } = props;
-    this.bubbles.countDependsOnWidth = 1000;
-    console.log(this.bubbles);
-    // grid
-    ctx.fillRect(canvas.width / 2, 0, 1, canvas.height);
-    ctx.fillRect(0, canvas.height / 2, canvas.width, 1);
+    this.props.time.isEnd = false;
+    this.gameInterface.score.value = 0
+    this.gameInterface.score.missed = 0
   };
 }
 
@@ -348,21 +325,16 @@ class Bubble {
     this.moveX();
     this.updateSidesPos();
   };
-
+  moveYRush = () => {
+    this.moveY()
+    this.step *= 1.05;
+  }
   moveY = () => {
     const { gameProps, pos, step, frame } = this;
-    if (gameProps.isPlay) {
+    if (gameProps.stage === 1) {
       this.step = (gameProps.time.current * 2) / 60 + 2;
-    } else {
-      this.step *= 1.05;
-    }
+    } 
     pos.y -= step;
-    if (frame.isExploding) {
-      return;
-    }
-    if (pos.bottom < 0) {
-      this.explode();
-    }
   };
   moveX = () => {
     const { canvas, pos, size, maxSize, gameProps } = this;
@@ -539,59 +511,6 @@ class Oar {
     }
     return false;
   };
-  // debug
-  debug = () => {
-    const { ctx, pos, hitBox, size, gameProps } = this;
-    const { mousePos } = gameProps;
-    ctx.save();
-    // ctx.globalCompositeOperation = "source-over";
-
-    ctx.save();
-    ctx.translate(pos.x, pos.y);
-    ctx.rotate((Math.PI / 180) * 143);
-    ctx.rotate(this.angle);
-
-    // oar
-    ctx.strokeRect(-size / 2, -size / 2, size, size);
-
-    ctx.restore();
-
-    // hitBox
-    ctx.fillStyle = "white";
-    ctx.beginPath();
-    ctx.arc(hitBox.pos.x, hitBox.pos.y, hitBox.radius, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fill();
-
-    // collision
-    const point = {
-      x: 300,
-      y: 300,
-      radius: 150,
-    };
-    ctx.fillStyle = "rgba(0,200,0,0.2)";
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, point.radius, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fill();
-
-    const left = Math.min(hitBox.pos.x, point.x);
-    const top = Math.min(hitBox.pos.y, point.y);
-    const right = Math.max(hitBox.pos.x, point.x);
-    const bottom = Math.max(hitBox.pos.y, point.y);
-
-    const dx = right - left;
-    const dy = bottom - top;
-
-    ctx.fillStyle = "rgba(200,0,0,0.5)";
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    if (distance < point.radius + hitBox.radius) {
-      ctx.fillStyle = "rgba(200,200,0,0.5)";
-    }
-    ctx.fillRect(left, top, dx, dy);
-
-    ctx.restore();
-  };
 }
 
 class GameInterface {
@@ -603,19 +522,14 @@ class GameInterface {
   };
   score = {
     value: 0,
+    missed: 0,
     pos: {
       x: null,
       y: null,
     },
   };
   timer = {
-    time: null,
-    pos: {
-      x: null,
-      y: null,
-    },
-  };
-  intro = {
+    time: 0,
     pos: {
       x: null,
       y: null,
@@ -627,8 +541,38 @@ class GameInterface {
       x: null,
       y: null,
     },
+    isDrawn: false,
+    isMouseCollision: () => {
+      const { pos, radius } = this.startButton;
+      const { mousePos } = this.gameProps;
+  
+      const left = Math.min(pos.x, mousePos.x);
+      const top = Math.min(pos.y, mousePos.y);
+      const right = Math.max(pos.x, mousePos.x);
+      const bottom = Math.max(pos.y, mousePos.y);
+  
+      const dx = right - left;
+      const dy = bottom - top;
+  
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < radius && this.startButton.isDrawn) {
+        return true;
+      }
+      return false;
+    }
   };
-
+  intro = {
+    pos: {
+      x: null,
+      y: null,
+    },
+  };
+  result = {
+    pos: {
+      x: null,
+      y: null
+    }
+  }
   constructor(gameProps) {
     this.gameProps = gameProps;
     this.ctx = gameProps.ctx;
@@ -636,7 +580,7 @@ class GameInterface {
     this.setPositions();
   }
   setPositions = () => {
-    const { canvas, baseSize, score, timer, intro, startButton } = this;
+    const { canvas, baseSize, score, timer, startButton, intro, result } = this;
     score.pos = {
       x: canvas.width - baseSize / 4,
       y: canvas.height - baseSize,
@@ -645,49 +589,18 @@ class GameInterface {
       x: baseSize / 4,
       y: canvas.height - baseSize,
     };
-    intro.pos = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-    };
     startButton.pos = {
       x: canvas.width / 2,
       y: canvas.height / 2 + baseSize * 3.5,
     };
-  };
-  render = () => {
-    const { stage } = this.gameProps;
-    this.update(); //
-    if (stage === 0) {
-      this.drawIntro();
-      this.drawStartButton();
+    intro.pos = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+    };
+    result.pos = {
+      x: canvas.width / 2,
+      y: canvas.height / 2 - baseSize * 10
     }
-    if (stage === 1) {
-      this.drawScore();
-      this.drawTimer();
-    }
-    if (stage === 2) {
-      this.drawResult();
-      this.drawStartButton();
-    }
-    this.drawCursor();
-  };
-  renderStage0 = () => {
-    this.drawIntro();
-    this.drawStartButton();
-    this.drawCursor();
-  };
-  renderStage1 = () => {
-    this.update();
-    this.drawIntro();
-    this.drawScore();
-    this.drawTimer();
-    this.drawCursor();
-  };
-  renderStage2 = () => {
-    this.update();
-    this.drawResult();
-    this.drawStartButton();
-    this.drawCursor();
   };
   update = () => {
     const { time } = this.gameProps;
@@ -696,10 +609,13 @@ class GameInterface {
     if (time.isEnd) {
       time.current = time.end;
     }
+    this.startButton.isDrawn = false
   };
   drawStartButton = () => {
-    const { ctx, font, baseSize, startButton } = this;
+    const { ctx, baseSize, startButton } = this;
     const { pos, radius } = startButton;
+
+    startButton.isDrawn = true
 
     const grad = ctx.createRadialGradient(
       pos.x,
@@ -726,7 +642,7 @@ class GameInterface {
 
     ctx.save();
     ctx.fillStyle = grad;
-    if (this.startButtonIsMouseCollision()) {
+    if (this.startButton.isMouseCollision()) {
       ctx.fillStyle = gradHover;
     }
     ctx.beginPath();
@@ -743,40 +659,26 @@ class GameInterface {
     ctx.fillText("START", pos.x, pos.y);
     ctx.restore();
   };
-  startButtonIsMouseCollision = () => {
-    const { pos, radius } = this.startButton;
-    const { mousePos } = this.gameProps;
-
-    const left = Math.min(pos.x, mousePos.x);
-    const top = Math.min(pos.y, mousePos.y);
-    const right = Math.max(pos.x, mousePos.x);
-    const bottom = Math.max(pos.y, mousePos.y);
-
-    const dx = right - left;
-    const dy = bottom - top;
-
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    if (distance < radius) {
-      return true;
-    }
-    return false;
-  };
   drawScore = () => {
-    const { ctx, score, font, baseSize } = this;
+    const { ctx, score, baseSize } = this;
     const { pos, value } = score;
 
     ctx.save();
-    ctx.font = font;
+    ctx.font = `${baseSize * 4}px Freckle Face`
     ctx.textBaseline = "top";
     ctx.textAlign = "right";
     ctx.fillStyle = "rgba(200,120,0,0.8)";
-    ctx.fillText(value, pos.x, pos.y - baseSize);
-    ctx.fillText("Score", pos.x, pos.y);
+    ctx.fillText(value, pos.x, pos.y - baseSize * 6);
+    ctx.font = `${baseSize * 2}px Freckle Face`
+    ctx.fillText("Score", pos.x, pos.y - baseSize * 2);
     ctx.restore();
   };
-  drawResult = () => {};
-  addScore = (score) => {
-    this.score.value += score;
+  addScore = (score, isHit) => {
+    if (isHit) {
+      this.score.value += score;
+    } else {
+      this.score.missed += score
+    }
   };
   drawTimer = () => {
     const { ctx, timer, font, baseSize } = this;
@@ -784,14 +686,15 @@ class GameInterface {
     const time = this.gameProps.time.current;
     const endTime = this.gameProps.time.end;
 
-    ctx.save();
-    ctx.font = font;
+    ctx.save();    
+    ctx.font = `${baseSize * 4}px Freckle Face`
     ctx.textBaseline = "top";
     ctx.fillStyle = `rgba(${(time * 255) / endTime},${
       255 - (time * 255) / endTime
     },0,1)`;
-    ctx.fillText(time, pos.x, pos.y - baseSize);
-    ctx.fillText("Time", pos.x, pos.y);
+    ctx.fillText(time, pos.x, pos.y - baseSize * 6);
+    ctx.font = `${baseSize * 2}px Freckle Face`
+    ctx.fillText("Time", pos.x, pos.y - baseSize * 2);
     ctx.restore();
   };
   drawCursor = () => {
@@ -870,5 +773,23 @@ class GameInterface {
     bubble(baseSize * 10, baseSize * 8, baseSize / 2);
     bubble(baseSize * 11, baseSize * 7, baseSize * 1.5);
     text();
+  };
+  drawResult = () => {
+    const {ctx, baseSize, score, result} = this
+    const {pos} = result
+    ctx.save()
+    ctx.font = `${baseSize * 5}px Freckle Face`
+    ctx.textAlign = "center";
+    ctx.fillStyle = 'rgba(200,200,100,1)'
+    ctx.fillText('RESULTS', pos.x, pos.y)
+    
+    ctx.font = `${baseSize * 3}px Freckle Face`
+    ctx.fillStyle = 'rgba(50,200,100,1)'
+    ctx.fillText('SCORE: ' + score.value, pos.x, pos.y + baseSize * 6)
+
+    ctx.font = `${baseSize * 2}px Freckle Face`
+    ctx.fillStyle = 'rgba(100,150,100,1)'
+    ctx.fillText('missed: ' + score.missed, pos.x, pos.y + baseSize * 8)
+    ctx.restore()
   };
 }
