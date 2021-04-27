@@ -45,7 +45,7 @@ class Game {
     time: {
       current: null,
       start: null,
-      end: 10,
+      end: 60,
       isEnd: null,
     },
   };
