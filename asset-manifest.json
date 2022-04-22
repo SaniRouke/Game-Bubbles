@@ -1,0 +1,24 @@
+{
+  "files": {
+    "main.css": "/bubbles/static/css/main.5c3d0c39.chunk.css",
+    "main.js": "/bubbles/static/js/main.9ddd4754.chunk.js",
+    "main.js.map": "/bubbles/static/js/main.9ddd4754.chunk.js.map",
+    "runtime-main.js": "/bubbles/static/js/runtime-main.969889b8.js",
+    "runtime-main.js.map": "/bubbles/static/js/runtime-main.969889b8.js.map",
+    "static/js/2.ae6f9a9d.chunk.js": "/bubbles/static/js/2.ae6f9a9d.chunk.js",
+    "static/js/2.ae6f9a9d.chunk.js.map": "/bubbles/static/js/2.ae6f9a9d.chunk.js.map",
+    "static/js/3.82e8690b.chunk.js": "/bubbles/static/js/3.82e8690b.chunk.js",
+    "static/js/3.82e8690b.chunk.js.map": "/bubbles/static/js/3.82e8690b.chunk.js.map",
+    "index.html": "/bubbles/index.html",
+    "static/css/main.5c3d0c39.chunk.css.map": "/bubbles/static/css/main.5c3d0c39.chunk.css.map",
+    "static/js/2.ae6f9a9d.chunk.js.LICENSE.txt": "/bubbles/static/js/2.ae6f9a9d.chunk.js.LICENSE.txt",
+    "static/media/bubble_frames.71faec4c.png": "/bubbles/static/media/bubble_frames.71faec4c.png",
+    "static/media/oar-skyrim.c07a4acb.png": "/bubbles/static/media/oar-skyrim.c07a4acb.png"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.969889b8.js",
+    "static/js/2.ae6f9a9d.chunk.js",
+    "static/css/main.5c3d0c39.chunk.css",
+    "static/js/main.9ddd4754.chunk.js"
+  ]
+}
