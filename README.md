@@ -1,1 +1,1 @@
-[Play](https://sanirouke.github.io/bubbles/)
+[Play](https://sanirouke.github.io/Game-Bubbles/)
